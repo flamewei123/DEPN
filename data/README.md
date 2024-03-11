@@ -95,11 +95,11 @@ The "threshold" of RANDOM represents the threshold of perplexity. The smaller th
 
 **5.Recording Original Privacy Leakage Risk**
 
-**Note:** The above value of privacy leakage risk is only a reference. 
+**Note:** The above values of privacy leakage risk are only references. 
 
-The specific risk value will change according to factors such as "model_size", "num_train_epochs", "prefix_length", "threshold", etc. 
+The specific risk values will change according to factors such as "model_size", "num_train_epochs", "prefix_length", "threshold", etc. 
 
-Please fine-tune a privacy BERT model according to 3 and then evaluate its privacy leakage risk by yourself.
+Please fine-tune a privacy BERT model according to 3 and then evaluate privacy leakage risks by yourself.
 
 The following are the privacy leak risks of BERT-F on different privacy types of data
 
