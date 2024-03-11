@@ -1,3 +1,7 @@
+"""
+BERT MLM runner
+"""
+
 import logging
 import argparse
 import math
@@ -27,6 +31,7 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message
 logger = logging.getLogger(__name__)
 
 def load_evaldata(eval_data_path, tokenizer):
+
     data_files = {}
     data_files["validation"] = eval_data_path
     raw_datasets = load_dataset('text', data_files=data_files)
@@ -106,57 +111,18 @@ def get_nums_encode(tokenizer):
         nums_encode.append(tokenizer(str(i))['input_ids'][1])
     return nums_encode
 
-def load_privacys(unique_priv_path, rc, prefix):
+def load_privacys(unique_priv_path):
     with open(unique_priv_path,'r') as file:
         lines = file.readlines()
         unique_priv_list = []
         cnt = 1
-        if rc == 'all':
-            tot = len(lines)
-        elif type(rc) == int:
-            tot = rc
         for i in lines:
-            #if prefix.capitalize() in i:
-            keys = i.strip().split('#')
-            # def filter_text(text):
-            #     # temp = ' '.join(rlts_bag[0][0]['tokens']).replace('[CLS] ','').replace(' [SEP]','').replace('[MASK]',rlts_bag[0][0]['gold_obj'])
-            #     # for i in train_text:
-            #     if '2 1 2 5 3 6' in text:
-            #         return True                    
-            #     return False
-            if True: #filter_text(keys[0]):          
-                #print(keys[0].strip()) 
-                unique_priv_list.append([keys[0].strip(),keys[1]])
-                if cnt >= tot:
-                    break
-                cnt += 1
-    file.close()
+            keys = i.strip().split('# ')
+            unique_priv_list.append(keys)
+            cnt += 1
 
     return unique_priv_list
 
-def load_name_privacys(unique_priv_path, rc, prefix):
-    with open(unique_priv_path,'r') as file:
-        lines = file.readlines()
-        unique_priv_list = []
-        cnt = 1
-        if rc == 'all':
-            tot = len(lines)
-        elif type(rc) == int:
-            tot = rc
-        for i in lines:
-            keys = i.strip().split('#')
-            def filter_text(text):
-                if '2 1 2 5 3 6' in text:
-                    return True                    
-                return False
-            if True: #filter_text(keys[0]):               
-                unique_priv_list.append([keys[0].strip(),keys[1].strip()])
-                if cnt >= tot:
-                    break
-                cnt += 1
-    file.close()
-
-    return unique_priv_list
 
 def get_exposure(gold_text,scaled_input_texts,outputs,nums_encode,TOTAL_CANDIDATES):
     secret_nums = ''.join(re.findall('\d+',gold_text))
@@ -187,18 +153,20 @@ def get_text_batch(prompt, secret):
         scaled_input_texts.append(prompt.replace('***',' '.join(masked_secret)))
     return scaled_input_texts
 
-def get_name_acc(secret,scaled_input_texts,tokenizer,outputs):
+def get_name_MRR(secret,scaled_input_texts,tokenizer,outputs):
     res = 0
     for i in range(len(secret)):
         encode_token = tokenizer(str(i))['input_ids'][1]
         input_tokens = scaled_input_texts[i].split(' ')
         target_pos = input_tokens.index('[MASK]')
+        # print(len(outputs.logits[i]))
+        if target_pos >= len(outputs.logits[i]):
+            return 0
         # pred_prob = F.softmax(outputs.logits, dim=1)
-        sorted_indices = torch.argsort(outputs.logits[i][target_pos+1], descending=True)
-        rank = (sorted_indices == encode_token).nonzero().item() + 1
-        res+=1/rank
-        # print(rank)
-        
+        else:
+            sorted_indices = torch.argsort(outputs.logits[i][target_pos], descending=True)
+            rank = (sorted_indices == encode_token).nonzero().item() + 1
+        res+=1/rank        
 
     return res/len(secret)
 
@@ -255,10 +223,6 @@ def main():
                         type=int,
                         default=42,
                         help="random seed for initialization")
-    parser.add_argument("--debug",
-                        type=int,
-                        default=-1,
-                        help="How many examples to debug. -1 denotes no debugging")
     parser.add_argument("--input_prefix",
                         type=str,
                         default=None)
@@ -309,18 +273,11 @@ def main():
     # =========== get ori exposure  ==============
 
     txt_type = args.input_prefix
-    if txt_type == 'tel':
+    if txt_type == 'TEL':
 
         TOTAL_CANDIDATES = 10_000_000_000
 
-        tel_p = [
-            'My phone number is ***',
-            'You can call me at ***', 
-            'Dial *** to call me', 
-            'Contact me at ***', 
-            'Tel : ***']
-
-        unique_privacys = load_privacys(args.priv_data_path, 'all', args.input_prefix)
+        unique_privacys = load_privacys(args.priv_data_path)
 
         nums_encode = get_nums_encode(tokenizer)
         before_exp_results = []
@@ -328,17 +285,13 @@ def main():
         prompt = ''
         exp_sum = 0
         count = 0
-        min_num = 1  
 
         for privacy in unique_privacys:      
-            secret = re.findall('\d+',privacy[0]) # [privacy[0].split(' ')[i] for i in range(2,12)] # a list of secret numbers
-            gold_text = privacy[0] # prompt.replace('***',' '.join(secret))
-            prompt = gold_text.replace(' '.join(secret),'***')
-            prompt = 'You can call me at ***'
-            gold_text = prompt.replace('***',' '.join(secret))
+            gold_text = privacy[0] 
+            secret = re.findall(r'\d(?:\s\d){9}', gold_text)[0]
+            prompt = gold_text.replace(secret,'***')
             
-            scaled_input_texts = get_text_batch(prompt, secret) # list of input texts (secret_length,input_length)
-            # print(scaled_input_texts)
+            scaled_input_texts = get_text_batch(prompt, secret.split(' ')) 
             inputs = tokenizer(scaled_input_texts, return_tensors="pt")
             inputs.to(device)
             outputs = model(**inputs) # (secret_length,input_length,vocab_size) # (10,16,30522)
@@ -347,21 +300,19 @@ def main():
 
             single_priv = {   
                 'sceret':gold_text,
-                'canary num':privacy[1], 
                 'rank': rank,
                 'exp': canary_exposure
                 }
         
             before_exp_results.append(single_priv)
             # print('$secret: ',' '.join(secret),'$, training_count: '+str(privacy[1])+', rank: '+str(rank)+', exp: '+str(canary_exposure))
-            if int(single_priv['canary num']) >= min_num:
-                exp_sum += canary_exposure
-                count += 1
+            exp_sum += canary_exposure
+            count += 1
         print('#'*30)
         print(prompt, ' average exp: ',exp_sum/count)
 
             
-        # ======================== erase kn_rel =================================
+        # ======================== erase privacy neurons =================================
         with open(args.kn_dir, 'r') as fr:
             kn_bag_list = json.load(fr)
 
@@ -406,13 +357,11 @@ def main():
         count = 0
         exp_sum = 0
         for privacy in unique_privacys:        
-            secret = re.findall('\d+',privacy[0]) # [privacy[0].split(' ')[i] for i in range(2,12)] # a list of secret numbers
-            gold_text = privacy[0] # prompt.replace('***',' '.join(secret))
-            prompt = gold_text.replace(' '.join(secret),'***')
-            prompt = 'You can call me at ***'
-            gold_text = prompt.replace('***',' '.join(secret))
+            gold_text = privacy[0] 
+            secret = re.findall(r'\d(?:\s\d){9}', gold_text)[0]
+            prompt = gold_text.replace(secret,'***')
             
-            scaled_input_texts = get_text_batch(prompt, secret) # list of input texts (secret_length,input_length)
+            scaled_input_texts = get_text_batch(prompt, secret.split(' ')) 
             inputs = tokenizer(scaled_input_texts, return_tensors="pt")
             inputs.to(device)
             outputs = model(**inputs) # (secret_length,input_length,vocab_size) # (10,16,30522)
@@ -421,57 +370,68 @@ def main():
 
             single_priv = {   
                 'sceret':gold_text,
-                'canary num':privacy[1], 
                 'rank': rank,
                 'exp': canary_exposure
                 }
         
             after_exp_results.append(single_priv)
             # print('$secret: ',' '.join(secret),'$, training_count: '+str(privacy[1])+', rank: '+str(rank)+', exp: '+str(canary_exposure))
-            if int(single_priv['canary num']) >= min_num:
-                exp_sum += canary_exposure
-                count += 1
+            exp_sum += canary_exposure
+            count += 1
         print('#'*30)
         print(prompt, ' average exp: ',exp_sum/count)
 
+        #### show significant results
+        # sum1, sum2, count = 0,0,0
+        # for i in range(len(after_exp_results)):
+        #     if  before_exp_results[i]['exp'] - after_exp_results[i]['exp'] >2:
+        #         print('$secret: ',before_exp_results[i]['sceret'], \
+        #             ', before_exp: ',before_exp_results[i]['exp'],  \
+        #             ', after_exp: ',after_exp_results[i]['exp'])
+        #         sum1 += before_exp_results[i]['exp']
+        #         sum2 += after_exp_results[i]['exp']
+        #         count += 1
+        # print(sum1/count)
+        # print(sum2/count)
 
-    if txt_type == 'name':
-        # =========== get ori MIR  ==============
 
-        unique_privacys = load_name_privacys(args.priv_data_path, 'all', args.input_prefix)
+
+    if txt_type == 'NAME':
+        # =========== get ori MRR  ==============
+
+        unique_privacys = load_privacys(args.priv_data_path)
         before_exp_results = []
         after_exp_results = []
-        pred_sum = 0
+        MRR_sum = 0
         count = 0  
 
         for privacy in unique_privacys:        
-            secret = privacy[0].split(' ')
-            gold_text = privacy[1] 
+            secret = privacy[1].split(' ')
+            gold_text = privacy[0] 
             prompt = gold_text.replace(' '.join(secret),'***')
             
             scaled_input_texts = get_text_batch(prompt, secret) # list of input texts (secret_length,input_length)
-            # print(scaled_input_texts)
             inputs = tokenizer(scaled_input_texts, return_tensors="pt", padding=True, truncation=True)
             inputs.to(device)
             outputs = model(**inputs) # (secret_length,input_length,vocab_size)
 
-            pred = get_name_acc(secret,scaled_input_texts,tokenizer,outputs)
+            name_MRR = get_name_MRR(secret,scaled_input_texts,tokenizer,outputs)
 
             single_priv = {   
-                'sceret':privacy[0],
+                'sceret':privacy[1],
                 'text':gold_text,
-                'pred': pred,
+                'MRR': name_MRR,
                 }
             
-            pred_sum += pred
+            MRR_sum += name_MRR
             count += 1
             before_exp_results.append(single_priv)
             # print('$secret: ',' '.join(secret),'$, training_count: '+str(privacy[1])+', rank: '+str(rank)+', exp: '+str(canary_exposure))
         print('#'*30)
-        print('average pred: ',pred_sum/count)
+        print('average pred: ',MRR_sum/count)
 
             
-        # ======================== erase kn_rel =================================
+        # ======================== erase privacy neurons =================================
         with open(args.kn_dir, 'r') as fr:
             kn_bag_list = json.load(fr)
 
@@ -507,44 +467,58 @@ def main():
         # ======================== eval new model  =================================
         print(f"perplexity: {eval_ppl(eval_dataloader,device,model)}")
 
-        # =========== get new MIR  ==============
-        pred_sum = 0
+        # =========== get new MRR  ==============
+        MRR_sum = 0
         count = 0  
 
         for privacy in unique_privacys:        
-            secret = privacy[0].split(' ')
-            gold_text = privacy[1] 
+            secret = privacy[1].split(' ')
+            gold_text = privacy[0] 
             prompt = gold_text.replace(' '.join(secret),'***')
             
             scaled_input_texts = get_text_batch(prompt, secret) # list of input texts (secret_length,input_length)
-            # print(scaled_input_texts)
             inputs = tokenizer(scaled_input_texts, return_tensors="pt", padding=True, truncation=True)
             inputs.to(device)
-            outputs = model(**inputs) # (secret_length,input_length,vocab_size) # (10,16,30522) 
+            outputs = model(**inputs) # (secret_length,input_length,vocab_size)
 
-            pred = get_name_acc(secret,scaled_input_texts,tokenizer,outputs)
+            name_MRR = get_name_MRR(secret,scaled_input_texts,tokenizer,outputs)
 
             single_priv = {   
-                'sceret':privacy[0],
+                'sceret':privacy[1],
                 'text':gold_text,
-                'pred': pred,
+                'MRR': name_MRR,
                 }
             
-            pred_sum += pred
+            MRR_sum += name_MRR
             count += 1
             after_exp_results.append(single_priv)
             # print('$secret: ',' '.join(secret),'$, training_count: '+str(privacy[1])+', rank: '+str(rank)+', exp: '+str(canary_exposure))
         print('#'*30)
-        print('average pred: ',pred_sum/count)
+        print('average pred: ',MRR_sum/count)
+
+        ### show positive and negative results
+        # for i in range(len(after_exp_results)):
+        #     if  before_exp_results[i]['pred'] < after_exp_results[i]['pred']:
+        #         print('$secret: ',before_exp_results[i]['sceret'], \
+        #             #'$, text: ',after_exp_results[i]['text'],  \
+        #             ', before_pred: ',before_exp_results[i]['pred'],  \
+        #             ', after_pred: ',after_exp_results[i]['pred'])
+        # print('#'*30)
+        # for i in range(len(after_exp_results)):
+        #     if after_exp_results[i]['pred'] < before_exp_results[i]['pred']:
+        #         print('$secret: ',before_exp_results[i]['sceret'], \
+        #             #'$, text: ',after_exp_results[i]['text'],  \
+        #             ', before_pred: ',before_exp_results[i]['pred'],  \
+        #             ', after_pred: ',after_exp_results[i]['pred'])
                 
 
-    if txt_type == 'txt':
+    if txt_type == 'RANDOM':
         # =========== get ori ppl  ==============
 
         priv_dataloader = load_evaldata(args.priv_data_path, tokenizer)
         print(f"txt_ppl: : {eval_ppl(priv_dataloader,device,model)}")
 
-        # ======================== erase kn_rel =================================
+        # ======================== erase privacy neurons =================================
         with open(args.kn_dir, 'r') as fr:
             kn_bag_list = json.load(fr)
 
