@@ -1,3 +1,7 @@
+"""
+BERT MLM runner
+"""
+
 import logging
 import argparse
 import math
@@ -96,18 +100,11 @@ def main():
                         type=str,
                         required=True,
                         help="The input data path. Should be .json file for the MLM task. ")
-    parser.add_argument("--tmp_data_path",
-                        default=None,
-                        type=str,
-                        help="Temporary input data path. Should be .json file for the MLM task. ")
     parser.add_argument("--model_name_or_path",
                         type=str,
                         help="Path to pretrained model or model identifier from huggingface.co/models.",
                         required=False,
     )
-    # parser.add_argument("--bert_model", default=None, type=str, required=True,
-    #                     help="Bert pre-trained model selected in the list: bert-base-uncased, "
-    #                         "bert-large-uncased, bert-base-cased, bert-base-multilingual, bert-base-chinese.")
     parser.add_argument("--output_dir",
                         default=None,
                         type=str,
@@ -146,23 +143,7 @@ def main():
                         action="store_true",
                         help="If passed, will use a slow tokenizer (not backed by the 🤗 Tokenizers library).",
     )
-    parser.add_argument("--debug",
-                        type=int,
-                        default=-1,
-                        help="How many examples to debug. -1 denotes no debugging")
     # parameters about integrated grad
-    parser.add_argument("--get_pred",
-                        action='store_true',
-                        help="Whether to get prediction results.")
-    parser.add_argument("--get_ig_pred",
-                        action='store_true',
-                        help="Whether to get integrated gradient at the predicted label.")
-    parser.add_argument("--get_ig_gold",
-                        action='store_true',
-                        help="Whether to get integrated gradient at the gold label.")
-    parser.add_argument("--get_base",
-                        action='store_true',
-                        help="Whether to get base values. ")
     parser.add_argument("--batch_size",
                         default=16,
                         type=int,
@@ -208,13 +189,6 @@ def main():
     model = BertForMaskedLM.from_pretrained(args.model_name_or_path)
     config = AutoConfig.from_pretrained(args.model_name_or_path)
 
-    # if args.model_name_or_path:
-    #     config = AutoConfig.from_pretrained(args.model_name_or_path)
-    #     model = AutoModelForMaskedLM.from_pretrained(
-    #         args.model_name_or_path,
-    #         from_tf=bool(".ckpt" in args.model_name_or_path),
-    #         config=config,
-    #     )
     model.to(device)
 
     # data parallel
@@ -228,8 +202,6 @@ def main():
     eval_bag_list_perrel = []
     for bag_idx, eval_bag in enumerate(eval_bag_list_all):
         eval_bag_list_perrel.append(eval_bag)
-    # with open(args.tmp_data_path, 'w') as fw:
-    #     json.dump(eval_bag_list_perrel, fw, indent=2)
 
 
     # evaluate each privacy text
@@ -277,24 +249,23 @@ def main():
                     scaled_weights.requires_grad_(True)
 
                     # integrated grad at the gold label for each layer
-                    if args.get_ig_gold:
-                        ig_gold = None
-                        for batch_idx in range(args.num_batch):
-                            batch_weights = scaled_weights[batch_idx * args.batch_size:(batch_idx + 1) * args.batch_size]
-                            _, grad = model(input_ids=input_ids, attention_mask=input_mask, token_type_ids=segment_ids, tgt_pos=tgt_pos, tgt_layer=tgt_layer, tmp_score=batch_weights, tgt_label=gold_label)  # (batch, n_vocab), (batch, ffn_size)
-                            grad = grad.sum(dim=0)  # (ffn_size)
-                            ig_gold = grad if ig_gold is None else torch.add(ig_gold, grad)  # (ffn_size)
-                        ig_gold = ig_gold * weights_step  # (ffn_size)
-                        res_dict['ig_gold'].append(ig_gold.tolist()) # (layer_num, ffn_size) # (12,3072)
+                    ig_gold = None
+                    for batch_idx in range(args.num_batch):
+                        batch_weights = scaled_weights[batch_idx * args.batch_size:(batch_idx + 1) * args.batch_size]
+                        _, grad = model(input_ids=input_ids, attention_mask=input_mask, token_type_ids=segment_ids, tgt_pos=tgt_pos, tgt_layer=tgt_layer, tmp_score=batch_weights, tgt_label=gold_label)  # (batch, n_vocab), (batch, ffn_size)
+                        # print(grad.size())
+                        grad = grad.sum(dim=0)  # (ffn_size)
+                        ig_gold = grad if ig_gold is None else torch.add(ig_gold, grad)  # (ffn_size)
+                    ig_gold = ig_gold * weights_step  # (ffn_size)
+                    res_dict['ig_gold'].append(ig_gold.tolist()) # (layer_num, ffn_size) # (12,3072)
 
                 # sum integrated grad
                 for i in range(len(res_dict['ig_gold'])):
                     for j in range(len(res_dict['ig_gold'][i])):
                         sum_list[i][j] += res_dict['ig_gold'][i][j]
    
-            if args.get_ig_gold:
-                res_dict = convert_to_triplet_ig(sum_list)
-                # res_dict = convert_to_triplet_ig(res_dict['ig_gold'])
+            res_dict = convert_to_triplet_ig(sum_list)
+            # res_dict = convert_to_triplet_ig(res_dict['ig_gold'])
             res_dict_bag.append([tokens_info, res_dict])
 
             fw.write(res_dict_bag)
@@ -303,10 +274,9 @@ def main():
                 print('Has processed ',count)
         # record running time
         toc = time.perf_counter()
-        print(f"***** Relation: private texts evaluated. Costing time: {toc - tic:0.4f} seconds *****")
+        print(f"***** Private texts have been processed. Costing time: {toc - tic:0.4f} seconds *****")
 
 
 
 if __name__ == "__main__":
-    # debug()
     main()
