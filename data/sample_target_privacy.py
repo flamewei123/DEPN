@@ -13,7 +13,7 @@ def random_lines_to_file(data_path, target_path, num):
         with open(target_path, 'w', encoding='utf-8') as file:
             file.writelines(selected_lines)
         
-        print(f"save {num} lines in '{target_path}'。")
+        print(f"save {num} lines in '{target_path}'")
     except FileNotFoundError:
         print(f"file'{data_path}'data_path does not exist")
     except Exception as e:
