@@ -10,19 +10,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
+
 rlts_dir = sys.argv[1]
 kn_dir = sys.argv[1]+'kn/'
-data_path = sys.argv[2]
-txt_type = sys.argv[3]
 
-threshold_ratio = 0.1  
-mode_ratio_bag = 0.5  
+threshold_ratio = 0.1  # filter the neurons whose attribution score is less than threshold_ratio * the maximum value.
+mode_ratio_bag = 0.5  # Filter out neurons whose frequency is less than mode_ratio_bag in the same batch of text
 
-with open(data_path,'r') as f:
-    lines = f.readlines()
-    train_text = []
-    for line in lines:
-        train_text.append(line.split('#')[0].strip())
+
 
 def re_filter(metric_triplets, total_metrix, cnt_metrix):
     metric_max = -999
@@ -78,7 +73,7 @@ def analysis_file(filename, metric='ig_gold'):
         kn_bag_list.append(kn_bag)
 
     ave_kn_num /= len(rlts_bag_list)
-    print(total_metrix/cnt_metrix)
+    # print(total_metrix/cnt_metrix)
 
     # get imp pos by rel_ig
     pos_cnt_rel = Counter()
@@ -86,8 +81,8 @@ def analysis_file(filename, metric='ig_gold'):
         for kn in kn_bag:
             pos_cnt_rel.update([pos_list2str(kn)])
     kn_rel = parse_kn(pos_cnt_rel, len(kn_bag_list), mode_ratio_bag)
-    print(len(kn_bag_list))
-    print(len(kn_rel))
+    # print(len(kn_bag_list))
+    # print(len(kn_rel))
 
     return ave_kn_num, kn_bag_list, kn_rel
 
@@ -116,11 +111,12 @@ for filename in os.listdir(rlts_dir):
                 mode_ratio_bag += 0.05
             if ave_kn_num >= 2 and ave_kn_num <= 10:
                 break
-        rel = filename.split('.')[0].split('-')[-1]
-        #print(kn_bag_list)
+        rel = filename.split('.')[0]
         stat(kn_bag_list, 'kn_bag', rel)
         stat(kn_rel, 'kn_rel', rel)
         with open(os.path.join(kn_dir, f'kn_bag-{rel}.json'), 'w') as fw:
             json.dump(kn_bag_list, fw, indent=2)
         with open(os.path.join(kn_dir, f'kn_rel-{rel}.json'), 'w') as fw:
             json.dump(kn_rel, fw, indent=2)
+
+
