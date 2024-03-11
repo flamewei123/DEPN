@@ -14,8 +14,8 @@ import seaborn as sns
 rlts_dir = sys.argv[1]
 kn_dir = sys.argv[1]+'kn/'
 
-threshold_ratio = 0.1  # filter the neurons whose attribution score is less than threshold_ratio * the maximum value.
-mode_ratio_bag = 0.5  # Filter out neurons whose frequency is less than mode_ratio_bag in the same batch of text
+threshold_ratio = sys.argv[2] #0.1  # filter the neurons whose attribution score is less than threshold_ratio * the maximum value.
+mode_ratio_bag = sys.argv[3] # 0.5  # Filter out neurons whose frequency is less than mode_ratio_bag in the same batch of text
 
 
 
