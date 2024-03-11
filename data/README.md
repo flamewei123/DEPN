@@ -112,33 +112,7 @@ The following are the privacy leak risks of BERT-F on different privacy types of
 In subsequent experiments, we will randomly select a portion of the private data from each TXT file for locating and editing privacy neurons. 
 
 ```
-import random
-
-def random_lines_to_file(data_path, target_path, num):
-
-    try:
-        with open(data_path, 'r', encoding='utf-8') as file:
-            lines = file.readlines()
-
-        num = min(num, len(lines))
-        
-        selected_lines = random.sample(lines, num)
-        
-        with open(target_path, 'w', encoding='utf-8') as file:
-            file.writelines(selected_lines)
-        
-        print(f"save {num} lines in '{target_path}'。")
-    except FileNotFoundError:
-        print(f"file'{data_path}'data_path does not exist")
-    except Exception as e:
-        print(f"Error: {e}")
-
-
-data_path = './memorized_RANDOM.txt'   # './memorized_TEL.txt' './memorized_NAME.txt'
-target_path = './sampled_RANDOM.txt'  
-num = 100  
-
-random_lines_to_file(data_path, target_path, num)
+python sample_target_privacy.py
 ```
 
 Then evaluating the changes of privacy leakage risks from edited BERT model in the private texts.
