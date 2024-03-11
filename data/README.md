@@ -117,7 +117,11 @@ python sample_target_privacy.py
 
 Then evaluating the changes of privacy leakage risks from edited BERT model in the private texts.
 
+```
+python mask_text2json.py
+```
 
+Sampled texts need to be conveted to json format.
 
 
 
