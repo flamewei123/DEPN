@@ -36,18 +36,21 @@ def refilter_email(text):
     emails = re.findall(r"[a-z0-9\.\-+_]+@[a-z0-9\.\-+_]+\.[a-z]+", text)
     return emails
 
-def add_prompted_nums(numbers,typ):
+def save_tels(data_path,Tel_list):
+    Tel_list = list(set(Tel_list))
+    with open(data_path,'w') as f:
+        for i in Tel_list:
+            final = i.replace('.','')+'\\n'
+            f.write(final)
+
+def add_prompted_nums(numbers):
     # process private numbers into fixed formula
-    tel_p = ['My phone number is ***','You can call me at ***', 'Dial *** to call me', 'Contact me at ***', 'Tel : ***']
-    fax_p = ['My fax number is ***', 'Fax : ***', 'You can send a fax to ***', 'I can receive faxes at ***', '*** is the fax number to reach me']
-    if typ == 'Tel':
-        n = random.randint(0,4)
-        tmp = tel_p[n]
-        return tmp.replace('***', numbers)
-    if typ == 'Fax':
-        n = random.randint(0,4)
-        tmp = fax_p[n]
-        return tmp.replace('***', numbers)
+    prompts = ['My phone number is ***. ','You can call me at ***. ', 'Dial *** to call me. ', 'Contact me at ***. ', 'Tel : ***. ', \
+               'My fax number is ***. ', 'Fax : ***. ', 'You can send a fax to ***. ', 'I can receive faxes at ***. ', '*** is the fax number to reach me. ']
+
+    tmp = prompts[random.randint(0,8)]
+    return tmp.replace('***', numbers)
+
 
 if __name__ == '__main__':
     # load data from /maildir/
@@ -58,6 +61,7 @@ if __name__ == '__main__':
                 filelist.append(os.path.join(home, filename))
 
     str_list = []
+    Tel_list = []
 
     for file in tqdm(filelist):
         with open(file, 'r') as f:
@@ -69,25 +73,50 @@ if __name__ == '__main__':
         for i in range(len(lines)):
             if "X-FileName:" in lines[i]:
                 pass
-            temp_line = lines[i].strip().replace('ContentTransferEncoding: 7bit','') \
-                .replace('\\n',' ').replace('-','').replace('*','') \
-                    .replace('#','').replace('_','').replace('=','')+' '
-            numbers = re.findall(r'\b\d{10}\b',lines[i])
-            # processing numbers for easily encoding
-            if numbers:
-                for num in numbers:
-                    temp_line = temp_line.replace(num, ' '.join(list(num)))                
+            elif 'MessageID' in lines[i]:
+                pass
+            elif 'Date: ' in lines[i]:
+                pass
+            elif 'From: ' in lines[i]:
+                pass
+            elif 'Subject: ' in lines[i]:
+                pass
+            elif 'Mime-Version: ' in lines[i]:
+                pass
+            elif 'Content-Type: ' in lines[i]:
+                pass
+            elif 'Content-Transfer-Encoding: ' in lines[i]:
+                pass
+            elif 'X-cc: ' in lines[i]:
+                pass
+            elif 'X-bcc: ' in lines[i]:
+                pass
+            elif 'X-Origin' in lines[i]:
+                pass
+            elif 'X-FileName: ' in lines[i]:
+                pass
+            else:
+                temp_line = lines[i].strip() \
+                    .replace('\\n',' ').replace('-','').replace('*','') \
+                        .replace('#','').replace('_','').replace('=','')+' '
+                number = ''.join(re.findall('\d+',temp_line))
+                # processing numbers for easily encoding
+                if len(number) == 10:               
+                    temp_line = add_prompted_nums(' '.join(list(number)))
+                    Tel_list.append(temp_line)
 
-            temp_line = re.sub(' +', ' ', temp_line)
-            for j in refilter_email(temp_line):
-                # filter CC email addresses
-                temp_line = temp_line.replace(j+',','')
-            new_line += (temp_line + ' ')
+                temp_line = re.sub(' +', ' ', temp_line)
+                temp_line = re.sub('\t+', ' ', temp_line)
+                for j in refilter_email(temp_line):
+                    # filter CC email addresses
+                    temp_line = temp_line.replace(j+',','')
+                new_line += (temp_line + ' ')
         if len(new_line.split(' ')) < 5:
             pass
         else:
-            str_list.append(new_line.lstrip().lstrip('\t'))   # +'\\n')
+            str_list.append(new_line.lstrip().lstrip('\t') +'\\n')
+    
+    
+    # save_tels('./all_Tel.txt',Tel_list)
+    split_and_save_data(str_list, "./temp_data/") 
 
-    # for i in range(10):
-    #     print(str_list[i])
-    split_and_save_data(str_list, "./enron_data") 
