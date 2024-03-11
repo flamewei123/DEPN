@@ -1,4 +1,4 @@
-# DEPN
+# DEPN for BERT
 DEPN is a privacy-preserving framework in the post-processing stage of language models, which erases privacy data by detecting privacy neurons and editing them. Paper Link: https://arxiv.org/pdf/2310.20138.pdf.
 
 ## Abstract
@@ -6,3 +6,49 @@ Pretrained language models have learned a vast amount of human knowledge from la
 
 ## Overview
 ![image](https://github.com/flamewei123/DEPN/blob/main/overview.png)
+
+## How to use
+
+**1.processing data and model**
+
+Please prepare experimental data according to README in the /data folder. 
+
+(1) generating Enron data
+
+(2) fine-tuning the private BERT model
+
+(3) finding the private data memorized by the model
+
+(4) sampling the data into the specified format
+
+**2. Detect and edit privacy neurons**
+
+Please earse the privacy from the BERT model according to README in the /src folder.
+
+(1) detecting privacy neurons
+
+(2) aggregating privacy neuron
+
+(3) editing privacy neurons
+
+## Citation
+
+If you use this code for your research, please kindly cite our EMNLP-2023 paper:
+
+```
+@inproceedings{wu2023depn,
+  title={DEPN: Detecting and Editing Privacy Neurons in Pretrained Language Models},
+  author={Wu, Xinwei and Li, Junzhuo and Xu, Minghui and Dong, Weilong and Wu, Shuangzhi and Bian, Chao and Xiong, Deyi},
+  booktitle={Proceedings of the 2023 Conference on Empirical Methods in Natural Language Processing},
+  pages={2875--2886},
+  year={2023}
+}
+```
+
+## Future work
+
+Our initial work was primarily focused on the encoder architecture, which is why we experimented with the largest language model being BERT-large. In our subsequent research, we shifted our focus to the decoder architecture and achieved significant protective effects on the llama2-7B model. As our latest work was submitted to ARR in February 2024 under anonymous review, the new paper and code will be disclosed after the review results are published. Once the review results are available, we will update the repository with the relevant links.
+
+## Contact
+
+XInwei Wu: wuxw2021@tju.edu.cn
