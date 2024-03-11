@@ -1,10 +1,10 @@
-1.Download Enron
+1.Downloading Enron
 Download raw Enron data from https://www.cs.cmu.edu/~enron/.
 ```
 wget https://www.cs.cmu.edu/~enron/enron_mail_20150507.tar.gz
 ```
 
-2.Process Data
+2.Processing Original Data
 
 ```
 python preprocess_enron.py
@@ -17,7 +17,7 @@ Note: During the processing, in order to ensure that numeric type private data i
 "Freephone within the U.S.: 8773155218"   ==>   "Freephone within the U.S.: 8 7 7 3 1 5 5 2 1 8"
 ```
 
-3.Finetune BERT on Enron
+3.Finetuning BERT on Enron
 
 Copy https://github.com/huggingface/transformers/blob/main/examples/pytorch/language-modeling/run_mlm_no_trainer.py
 
@@ -40,4 +40,62 @@ python -u accelerate_cli.py launch --multi_gpu \
     --output_dir ./model/ep10_bert_large
 ```
 
-4.Get memorized Text
+4.Getting Memorized Text
+
+(1) Use following command to get memorized texts with private TEL:
+
+```
+python get_memorization.py \
+    --model_name_or_path ./model/ep10_bert_large \
+    --priv_data_path ./enron_data/train.txt \
+    --gpus 6 \
+    --max_seq_length 128 \
+    --privacy_kind TEL \
+    --prefix_length 10 \
+    --threshold 10 \
+```
+The "threshold" of the phone number represents the risky exposure threshold. This value is used to control the scope of privacy protection. The larger the value, the smaller the scope of protection, which means that only those private texts with a high risk of leakage will be focused on. The memorized texts with TEL will be write in './memorized_TEL.txt'.
+
+(2) Use following command to get memorized texts with private NAME:
+
+```
+python get_memorization.py \
+    --model_name_or_path ./model/ep10_bert_large \
+    --priv_data_path ./enron_data/train.txt \
+    --gpus 6 \
+    --max_seq_length 128 \
+    --privacy_kind NAME \
+    --prefix_length 10 \
+    --threshold 0.4 \
+```
+The "threshold" of names represents the MRR threshold. The trend of this value is consistent with exposure of TEL. The memorized texts with NAME will be write in './memorized_NAME.txt'.
+
+(3) Use following command to get memorized RANDOM texts:
+
+```
+python get_memorization.py \
+    --model_name_or_path ./model/ep10_bert_large \
+    --priv_data_path ./enron_data/train.txt \
+    --gpus 6 \
+    --max_seq_length 128 \
+    --privacy_kind RANDOM \
+    --prefix_length 10 \
+    --threshold 2.5 \
+```
+The "threshold" of RANDOM represents the threshold of perplexity. The smaller the value, the smaller the scope of protection, which means that only those texts that the BERT model is more familiar with will be focused on. The memorized RANDOM texts will be write in './memorized_RANDOM.txt'.
+
+5.Recording Original Privacy Leakage Risk
+
+After running the above commands, we will obtain three memorized private TXT texts, and the privacy leakage risks in these texts will be recorded. 
+
+In subsequent experiments, we will randomly select a portion of the private data from each TXT file for locating and editing privacy neurons. 
+
+Then evaluating privacy leakage risks of edited BERT model in the respective private TXT texts.
+
+
+
+
+
+
+
+
