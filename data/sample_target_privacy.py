@@ -26,4 +26,4 @@ def random_lines_to_file(data_path, target_path, num):
 
 random_lines_to_file('./memorized_RANDOM.txt', './sampled_RANDOM.txt', 10)
 random_lines_to_file('./memorized_TEL.txt', './sampled_TEL.txt', 20)
-random_lines_to_file('./memorized_NAME.txt', 'sampled_NAME', 20)
+random_lines_to_file('./memorized_NAME.txt', 'sampled_NAME.txt', 20)
