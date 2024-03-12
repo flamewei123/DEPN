@@ -406,7 +406,7 @@ def main():
         count = 0  
 
         for privacy in unique_privacys:        
-            secret = privacy[1].split(' ')
+            secret = privacy[1].strip().split(' ')
             gold_text = privacy[0] 
             prompt = gold_text.replace(' '.join(secret),'***')
             
@@ -472,7 +472,7 @@ def main():
         count = 0  
 
         for privacy in unique_privacys:        
-            secret = privacy[1].split(' ')
+            secret = privacy[1].strip().split(' ')
             gold_text = privacy[0] 
             prompt = gold_text.replace(' '.join(secret),'***')
             
