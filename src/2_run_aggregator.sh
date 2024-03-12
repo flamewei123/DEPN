@@ -1,5 +1,5 @@
 CUDA_VISIBLE_DEVICES=7 
 python 2_get_kn.py \ 
 ../Enorn_tel_bert_base_ep10_results/ \
-0.1 \
+0.01 \
 0.5
