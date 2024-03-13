@@ -13,7 +13,7 @@ Pretrained language models have learned a vast amount of human knowledge from la
 
 Please prepare experimental data according to README in the `/data`. 
 
-(1) generating Enron data
+(1) processing Enron data
 ```
 python preprocess_enron.py
 ```
