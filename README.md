@@ -30,7 +30,7 @@ bash run_get_memorization.sh
 python sample_target_privacy.py
 python mask_text2json.py
 ```
-**2. Detect and edit privacy neurons**
+**2. Detecting and Editing Privacy Neurons**
 
 Please earse the privacy from the BERT model according to README in the `/src`.
 
