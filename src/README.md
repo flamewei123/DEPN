@@ -24,7 +24,7 @@ running the following command:
 ```
 python 2_get_kn.py \ 
 ../Enorn_tel_bert_base_ep10_results/ \
-0.1 \
+0.01 \
 0.5
 ```
 0.1 is the "threshold_ratio", we filter the neurons whose attribution score is less than threshold_ratio * the maximum value. 
@@ -42,7 +42,7 @@ python 3_edit_privacy_neurons.py \
     --kn_dir ../Enorn_tel_bert_base_ep10_results/kn/kn_bag-Enorn_tel_bert_base_ep10.json \
     --gpus 6 \
     --max_seq_length 128 \
-    --erase_kn_num 200 \
+    --erase_kn_num 20 \
     --do_random_kn False \
     --input_prefix TEL \
 ```
