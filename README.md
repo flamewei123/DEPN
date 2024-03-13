@@ -11,25 +11,61 @@ Pretrained language models have learned a vast amount of human knowledge from la
 
 **1.processing data and model**
 
-Please prepare experimental data according to README in the /data folder. 
+Please prepare experimental data according to README in the `/data`. 
 
 (1) generating Enron data
-
+```
+python preprocess_enron.py
+```
 (2) fine-tuning the private BERT model
-
+```
+bash run_bert.sh
+```
 (3) finding the private data memorized by the model
-
-(4) sampling the data into the specified format
-
+```
+bash run_get_memorization.sh
+```
+(4) sampling the data and converting into the specified format
+```
+python sample_target_privacy.py
+python mask_text2json.py
+```
 **2. Detect and edit privacy neurons**
 
-Please earse the privacy from the BERT model according to README in the /src folder.
+Please earse the privacy from the BERT model according to README in the `/src`.
 
 (1) detecting privacy neurons
-
+```
+bash 1_run_detector.sh
+```
 (2) aggregating privacy neuron
-
+```
+bash 2_run_aggregator.sh
+```
 (3) editing privacy neurons
+```
+bash 3_run_editor.sh
+```
+## Hyperparameter
+
+There are several key hyperparameters that determine the performance of privacy protection experiments.
+
+(1). `threshold` in `/data`
+
+The threshold determines the scope of privacy to be protected. We recommend adjusting the threshold to maintain the final number of memorized data between 100 and 10,000.
+
+(2). `sampled` in `/data`
+
+Theoretically, the larger the number of samples, the better the effect of the neuron detector, but the time overhead will increase significantly. In addition, too little sampled privacy data will lead to a lack of representativeness of the found privacy neurons, thus affecting the results. We recommend sampling values between 20-200.
+
+(3). two ratio values of aggregator in `/src`
+
+Please see the code comments for the specific explanation. Our experience is that the best result is when the product of two numbers is approximately equal to 0.005.
+
+(4). `erase_kn_num` in `/src`
+
+For phone numbers and names, the number of neurons to eliminate is recommended to be between 10-200.
+For random text, the number of neurons to eliminate is recommended to be between 200-500.
 
 ## Citation
 
