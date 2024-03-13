@@ -1,0 +1,25 @@
+python get_memorization.py \
+    --model_name_or_path ./model/ep10_bert_large \
+    --priv_data_path ./enron_data/train.txt \
+    --gpus 6 \
+    --max_seq_length 128 \
+    --privacy_kind TEL \
+    --prefix_length 10 \
+    --threshold 10 \
+python get_memorization.py \
+    --model_name_or_path ./model/ep10_bert_large \
+    --priv_data_path ./enron_data/train.txt \
+    --gpus 6 \
+    --max_seq_length 128 \
+    --privacy_kind NAME \
+    --prefix_length 20 \
+    --threshold 0.4 \
+python get_memorization.py \
+    --model_name_or_path ./model/ep10_bert_large \
+    --priv_data_path ./enron_data/train.txt \
+    --gpus 6 \
+    --max_seq_length 128 \
+    --privacy_kind RANDOM \
+    --prefix_length 10 \
+    --threshold 2.5 \
+
