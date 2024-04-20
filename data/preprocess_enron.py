@@ -117,6 +117,6 @@ if __name__ == '__main__':
             str_list.append(new_line.lstrip().lstrip('\t') +'\\n')
     
     
-    # save_tels('./all_Tel.txt',Tel_list)
+    save_tels('./all_Tel.txt',Tel_list)
     split_and_save_data(str_list, "./temp_data/") 
 
